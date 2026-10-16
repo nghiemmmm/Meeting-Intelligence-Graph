@@ -1,0 +1,25 @@
+Dưới đây là danh sách các thực thể loại {entity_type} được bóc tách từ nhiều cuộc họp khác nhau trong dự án. 
+Một số tên gọi là các cách xưng hô, biệt danh, tên viết tắt hoặc các dạng biến thể bề mặt (surface forms) khác nhau của cùng một đối tượng thực tế.
+
+<entities>
+{entity_list}
+</entities>
+
+Nhiệm vụ của bạn là gom cụm (Cluster) và chuẩn hóa tên gọi các thực thể này.
+
+CÁC NGUYÊN TẮC BẮT BUỘC:
+1. KHÔNG LÀM RỚI RỚT THỰC THỂ (EXACT ALIAS COVERAGE):
+   Mỗi tên thực thể xuất hiện trong danh sách đầu vào BẮT BUỘC phải nằm trong danh sách `aliases` của đúng một cụm duy nhất. Không được bỏ sót bất kỳ thực thể nào.
+
+2. TRÁNH GỘP NHẦM CÁC THỰC THỂ THỰC SỰ KHÁC NHAU (AVOID OVER-MERGING):
+   Các thực thể thực sự khác biệt phải được tách thành một cụm độc lập riêng (cụm có thể chỉ chứa 1 alias duy nhất). 
+   Ví dụ: "Tuấn (PM dự án thanh toán)" và "Tuấn (Frontend developer)" tuy cùng tên nhưng là 2 người hoàn toàn khác nhau, BẮT BUỘC phải tách làm 2 cụm riêng biệt!
+
+3. TẬN DỤNG CÂU MÔ TẢ (DESCRIPTIONS) ĐỂ SUY LUẬN NGỮ NGHĨA:
+   Sử dụng thông tin vai trò, dự án, ngữ cảnh kỹ thuật trong phần Description để nhận diện các đối tượng có tên gọi hoàn toàn khác nhau nhưng thực chất là một (ví dụ: "Sếp Dũng" và "Nguyễn Tiến Dũng" cùng được mô tả là Tech Lead kiến trúc backend).
+
+4. TÊN CHUẨN (CANONICAL NAME) ĐẦY ĐỦ VÀ RÕ RÀNG NHẤT:
+   Tên `canonical` của mỗi cụm phải là định danh đầy đủ, chính thức và không gây hiểu nhầm (ví dụ: chọn "Nguyễn Tiến Dũng" thay vì "Sếp Dũng"; chọn "PostgreSQL" thay vì "Postgres").
+
+5. CĂN CỨ GOM CỤM (REASONING):
+   Nêu rõ lý do ngắn gọn vì sao bạn quyết định gom các biến thể này lại với nhau hoặc vì sao giữ chúng độc lập.
