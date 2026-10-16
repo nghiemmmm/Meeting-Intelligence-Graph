@@ -185,6 +185,27 @@ npm run dev
 ```
 Mở trình duyệt tại **[http://localhost:5173/](http://localhost:5173/)** (Vite tự động proxy các yêu cầu API về cổng 8000).
 
+### Cách 3: Triển Khai Lên Đám Mây Vercel (Cloud Deployment)
+
+Mã nguồn đã được tích hợp sẵn [`vercel.json`](file:///d:/GENTALENT/vercel.json) và Serverless Python Handler [`api/index.py`](file:///d:/GENTALENT/api/index.py) để triển khai Full-Stack (FastAPI + React) trực tiếp trên Vercel chỉ với 3 bước:
+
+1. **Import Repository**:
+   * Truy cập [vercel.com](https://vercel.com/) và đăng nhập tài khoản GitHub.
+   * Nhấn **Add New Project** → Chọn repository `nghiemmmm/Meeting-Intelligence-Graph`.
+2. **Cấu Hình Dự Án**:
+   * **Framework Preset**: Chọn `Other` (Vercel sẽ tự động đọc tệp [`vercel.json`](file:///d:/GENTALENT/vercel.json)).
+   * **Root Directory**: Giữ nguyên `./` (thư mục gốc).
+3. **Khai Báo Biến Môi Trường (Environment Variables)**:
+   * Thêm các biến như trong [`d:/GENTALENT/.env.example`](file:///d:/GENTALENT/.env.example):
+     * `OPENAI_API_KEY` (hoặc `GEMINI_API_KEY`)
+     * `DEFAULT_LLM_MODEL` = `gpt-4o-mini`
+     * `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD` *(nếu muốn kết nối Neo4j AuraDB)*
+   * Nhấn nút **Deploy**! Vercel sẽ tự động build giao diện React và phân phối Backend FastAPI Serverless Function toàn cầu.
+
+> [!NOTE]
+> **Khuyến nghị kiến trúc cho cuộc họp dung lượng lớn**:
+> Gói Vercel Hobby (miễn phí) có giới hạn thời gian phản hồi Serverless tối đa là 10 giây (`10s execution timeout`). Với các biên bản cuộc họp dài hàng chục trang cần LLM suy luận nhiều bước, bạn có thể triển khai Backend FastAPI trên **Render.com** / **Railway** và chỉ đặt Frontend trên **Vercel** (cấu hình biến `VITE_API_URL` trên Vercel trỏ tới domain Render).
+
 ---
 
 ## 🧪 7. Bộ Kiểm Thử Tự Động (Mission 2 Test Suite)

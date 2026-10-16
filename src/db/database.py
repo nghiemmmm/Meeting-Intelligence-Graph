@@ -2,8 +2,12 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-# Đường dẫn lưu trữ SQLite file: d:\GENTALENT\data\meetings.db
-DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data"))
+# Kiểm tra nếu đang chạy trên Vercel Serverless (chỉ cho phép ghi vào thư mục /tmp)
+if os.environ.get("VERCEL"):
+    DATA_DIR = "/tmp/data"
+else:
+    DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data"))
+
 os.makedirs(DATA_DIR, exist_ok=True)
 
 SQLITE_FILE_PATH = os.path.join(DATA_DIR, "meetings.db")
