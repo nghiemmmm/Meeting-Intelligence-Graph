@@ -1,6 +1,24 @@
 # 🚀 TRÍ TUỆ CUỘC HỌP (Meeting Intelligence Assistant)
 ### *Evidence-Centered Meeting Knowledge Graph & Temporal Decision Tracking System*
 
+<p align="center">
+  <a href="https://meeting-intelligence-graph-geqz.vercel.app/" target="_blank">
+    <img src="https://img.shields.io/badge/🚀_Live_Demo-Vercel_App-0070f3?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo on Vercel" />
+  </a>
+  <a href="https://github.com/nghiemmmm/Meeting-Intelligence-Graph" target="_blank">
+    <img src="https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Repo" />
+  </a>
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/React_18-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React" />
+  <img src="https://img.shields.io/badge/Neo4j_AuraDB-45818e?style=for-the-badge&logo=neo4j&logoColor=white" alt="Neo4j" />
+</p>
+
+> 🌐 **TRẢI NGHIỆM TRỰC TIẾP TRÊN WEB (LIVE DEMO):**  
+> 👉 **[https://meeting-intelligence-graph-geqz.vercel.app/](https://meeting-intelligence-graph-geqz.vercel.app/)**  
+> *(Ứng dụng Web Dashboard + Backend FastAPI Serverless đang hoạt động trực tuyến 24/7 trên hạ tầng Vercel)*
+
+---
+
 Hệ thống AI xử lý biên bản cuộc họp đa tầng, chuyển hóa transcript hội thoại thô thành **dữ liệu cấu trúc có thể tiếp tục sử dụng** cho quy trình vận hành và kiến tạo **Đồ thị tri thức doanh nghiệp (Enterprise Knowledge Graph)**.
 
 Dự án hiện thực hóa trọn vẹn yêu cầu **MISSION 1 (Kiến trúc giải pháp)** và **MISSION 2 (Hiện thực hóa Prototype/MVP)** với khả năng truy vết chuỗi nhân quả, theo dõi thay đổi quyết định theo thời gian (`SUPERSEDES`), khôi phục phát ngôn khuyết ngữ cảnh (`DUR`), và kiểm toán bằng chứng gốc chống ảo giác (`Zero Hallucination`).
@@ -186,6 +204,10 @@ npm run dev
 Mở trình duyệt tại **[http://localhost:5173/](http://localhost:5173/)** (Vite tự động proxy các yêu cầu API về cổng 8000).
 
 ### Cách 3: Triển Khai Lên Đám Mây Vercel (Cloud Deployment)
+
+* 🌐 **Ứng Dụng Đang Hoạt Động Trực Tuyến (Production URL)**: **[https://meeting-intelligence-graph-geqz.vercel.app/](https://meeting-intelligence-graph-geqz.vercel.app/)**
+* 🩺 **API Healthcheck Online**: [https://meeting-intelligence-graph-geqz.vercel.app/health](https://meeting-intelligence-graph-geqz.vercel.app/health)
+* 📖 **Swagger UI Docs Online**: [https://meeting-intelligence-graph-geqz.vercel.app/docs](https://meeting-intelligence-graph-geqz.vercel.app/docs)
 
 Mã nguồn đã được tích hợp sẵn [`vercel.json`](file:///d:/GENTALENT/vercel.json) và Serverless Python Handler [`api/index.py`](file:///d:/GENTALENT/api/index.py) để triển khai Full-Stack (FastAPI + React) trực tiếp trên Vercel chỉ với 3 bước:
 
