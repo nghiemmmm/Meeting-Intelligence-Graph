@@ -38,16 +38,47 @@ class LLMService:
 
         # 2. Khởi tạo Google Gemini nếu key hợp lệ
         if self.gemini_key and self.gemini_key != "mock-key-for-local-dev":
-            try:
-                import google.generativeai as genai
-                genai.configure(api_key=self.gemini_key)
-                self.gemini_configured = True
-            except Exception as e:
-                pass
+            self.gemini_configured = True
+
+    def _call_gemini_rest(self, prompt: str, json_mode: bool = False, timeout: float = 6.0) -> Optional[str]:
+        """
+        Gọi trực tiếp Google Gemini REST API qua urllib.request tiêu chuẩn.
+        Không cần gói google-generativeai cồng kềnh (loại bỏ hơn 140MB gRPC/C-extensions cho Vercel Lambda).
+        """
+        if not self.gemini_key or getattr(self, "gemini_disabled", False):
+            return None
+        try:
+            import urllib.request
+            model = "gemini-1.5-flash"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={self.gemini_key}"
+            payload: Dict[str, Any] = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"temperature": 0.1}
+            }
+            if json_mode:
+                payload["generationConfig"]["responseMimeType"] = "application/json"
+
+            data_bytes = json.dumps(payload).encode("utf-8")
+            req = urllib.request.Request(
+                url,
+                data=data_bytes,
+                headers={"Content-Type": "application/json"}
+            )
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                result = json.loads(response.read().decode("utf-8"))
+                candidates = result.get("candidates", [])
+                if candidates and "content" in candidates[0]:
+                    parts = candidates[0]["content"].get("parts", [])
+                    if parts and "text" in parts[0]:
+                        return parts[0]["text"]
+        except Exception as e:
+            if "timeout" in str(e).lower() or "deadline" in str(e).lower():
+                self.gemini_disabled = True
+        return None
 
     def extract_chunk_structured(self, chunk_text: str, context_state: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Gọi LLM với Structured Outputs (OpenAI parse hoặc Gemini response_schema)
+        Gọi LLM với Structured Outputs (OpenAI parse hoặc Gemini REST API)
         để bóc tách 5 nhóm dữ liệu cốt lõi tuân thủ 100% JSON Schema.
         Tự động fallback về Heuristic Parser an toàn khi chạy offline.
         """
@@ -77,35 +108,19 @@ class LLMService:
                 if "401" in str(e) or "invalid_api_key" in str(e):
                     self.openai_disabled = True
 
-        # Phương án 2: Gọi Google Gemini (Structured Outputs qua TypedDict response_schema)
+        # Phương án 2: Gọi Google Gemini REST API (JSON Mode)
         if self.gemini_configured and not getattr(self, "gemini_disabled", False):
             try:
-                import google.generativeai as genai
                 system_prompt = prompt_manager.get_meeting_extraction_system()
-                user_content = f"""{system_prompt}\n\n[Context State Hiện Tại]:\n{json.dumps(context_state, ensure_ascii=False)}\n\n[Đoạn Transcript Cuộc Họp Cần Phân Tích]:\n{chunk_text}"""
-                
-                model = genai.GenerativeModel("gemini-3.8-flash")
-                response = model.generate_content(
-                    user_content,
-                    generation_config=genai.GenerationConfig(
-                        response_mime_type="application/json",
-                        response_schema=MeetingExtractionTypedDict,
-                        temperature=0.1
-                    ),
-                    request_options={"timeout": 6.0}
-                )
-                if response.text:
-                    data = json.loads(response.text)
-                    if not data.get("actions") and not data.get("decisions") and not data.get("events"):
-                        # Trả về rỗng -> fallback sang heuristic
-                        pass
-                    else:
+                user_content = f"""{system_prompt}\n\n[Context State Hiện Tại]:\n{json.dumps(context_state, ensure_ascii=False)}\n\n[Đoạn Transcript Cuộc Họp Cần Phân Tích]:\n{chunk_text}\n\nHãy xuất ra đúng định dạng JSON tuân thủ cấu trúc trích xuất cuộc họp."""
+                resp_text = self._call_gemini_rest(user_content, json_mode=True, timeout=6.0)
+                if resp_text:
+                    data = json.loads(resp_text)
+                    if data.get("actions") or data.get("decisions") or data.get("events"):
                         validated = MeetingStructuredExtraction.model_validate(data)
                         return validated.model_dump()
-            except Exception as e:
-                # Nếu timeout hoặc lỗi mạng -> tắt Gemini và dùng fallback
-                if "timeout" in str(e).lower() or "deadline" in str(e).lower():
-                    self.gemini_disabled = True
+            except Exception:
+                pass
 
         # Phương án 3: Fallback Heuristic Parser (bảo đảm 100% hoạt động offline / local tests)
         return self._rule_based_fallback_extractor(chunk_text, context_state)
@@ -130,14 +145,9 @@ class LLMService:
 
         # Thử gọi Gemini nếu có
         if self.gemini_configured:
-            try:
-                import google.generativeai as genai
-                model = genai.GenerativeModel("gemini-1.5-flash")
-                resp = model.generate_content(prompt)
-                if resp.text:
-                    return resp.text.strip()
-            except Exception:
-                pass
+            resp_text = self._call_gemini_rest(prompt, timeout=5.0)
+            if resp_text:
+                return resp_text.strip()
 
         # Heuristic Fallback cho DUR:
         cur_lower = current_utterance.lower()
@@ -168,18 +178,13 @@ class LLMService:
                 pass
 
         if self.gemini_configured:
-            try:
-                import google.generativeai as genai
-                model = genai.GenerativeModel("gemini-1.5-flash")
-                resp = model.generate_content(prompt)
-                if resp.text:
-                    cypher = resp.text.strip()
-                    cypher = re.sub(r"^```cypher\s*", "", cypher, flags=re.IGNORECASE)
-                    cypher = re.sub(r"^```\s*", "", cypher)
-                    cypher = re.sub(r"\s*```$", "", cypher)
-                    return cypher.strip()
-            except Exception:
-                pass
+            resp_text = self._call_gemini_rest(prompt, timeout=5.0)
+            if resp_text:
+                cypher = resp_text.strip()
+                cypher = re.sub(r"^```cypher\s*", "", cypher, flags=re.IGNORECASE)
+                cypher = re.sub(r"^```\s*", "", cypher)
+                cypher = re.sub(r"\s*```$", "", cypher)
+                return cypher.strip()
 
         # Heuristic Fallback cho Text-to-Cypher:
         q_lower = question.lower()
@@ -211,14 +216,9 @@ class LLMService:
                 pass
 
         if self.gemini_configured:
-            try:
-                import google.generativeai as genai
-                model = genai.GenerativeModel("gemini-1.5-flash")
-                resp = model.generate_content(prompt)
-                if resp.text:
-                    return resp.text.strip()
-            except Exception:
-                pass
+            resp_text = self._call_gemini_rest(prompt, timeout=5.0)
+            if resp_text:
+                return resp_text.strip()
 
         return "Hệ thống đã tổng hợp thông tin dựa trên dữ liệu đồ thị tri thức cuộc họp."
 
@@ -244,18 +244,9 @@ class LLMService:
 
         # 2. Thử gọi Gemini nếu có
         if self.gemini_configured and not getattr(self, "gemini_disabled", False):
-            try:
-                import google.generativeai as genai
-                model = genai.GenerativeModel("gemini-3.8-flash")
-                resp = model.generate_content(
-                    prompt,
-                    generation_config=genai.GenerationConfig(temperature=0.1),
-                    request_options={"timeout": 6.0}
-                )
-                if resp.text:
-                    return resp.text.strip()
-            except Exception:
-                pass
+            resp_text = self._call_gemini_rest(prompt, timeout=6.0)
+            if resp_text:
+                return resp_text.strip()
 
         # 3. Grounded Fallback: Tổng hợp tự động từ chuỗi nhân quả của triples
         return (
@@ -291,24 +282,14 @@ class LLMService:
                 pass
 
         if self.gemini_configured and not getattr(self, "gemini_disabled", False):
-            try:
-                import google.generativeai as genai
-                model = genai.GenerativeModel("gemini-3.8-flash")
-                resp = model.generate_content(
-                    prompt,
-                    generation_config=genai.GenerationConfig(
-                        response_mime_type="application/json",
-                        response_schema=ResolvedClustersTypedDict,
-                        temperature=0.1
-                    ),
-                    request_options={"timeout": 6.0}
-                )
-                if resp.text:
-                    data = json.loads(resp.text)
+            resp_text = self._call_gemini_rest(prompt, json_mode=True, timeout=6.0)
+            if resp_text:
+                try:
+                    data = json.loads(resp_text)
                     validated = ResolvedClusters.model_validate(data)
                     return validated.model_dump()
-            except Exception:
-                pass
+                except Exception:
+                    pass
 
         # Heuristic Fallback cho Entity Resolution (hoạt động offline an toàn)
         clusters = []
@@ -362,24 +343,14 @@ class LLMService:
 
         # 2. Thử gọi Google Gemini Structured Outputs
         if self.gemini_configured and not getattr(self, "gemini_disabled", False):
-            try:
-                import google.generativeai as genai
-                model = genai.GenerativeModel("gemini-3.8-flash")
-                resp = model.generate_content(
-                    prompt,
-                    generation_config=genai.GenerationConfig(
-                        response_mime_type="application/json",
-                        response_schema=EntityProfileTypedDict,
-                        temperature=0.1
-                    ),
-                    request_options={"timeout": 6.0}
-                )
-                if resp.text:
-                    data = json.loads(resp.text)
+            resp_text = self._call_gemini_rest(prompt, json_mode=True, timeout=6.0)
+            if resp_text:
+                try:
+                    data = json.loads(resp_text)
                     validated = EntityProfile.model_validate(data)
                     return validated.model_dump()
-            except Exception:
-                pass
+                except Exception:
+                    pass
 
         # 3. Rule-based Heuristic Fallback (Grounded & Anti-hallucination)
         facts = []
