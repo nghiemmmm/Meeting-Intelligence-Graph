@@ -1,0 +1,13 @@
+# Vercel Deployment Ignore List
+Resource/
+tests/
+data/*.db
+00-Tong-Quan-Tri-Tue-Cuoc-Hop.md
+01-Semantic-Intent-Schema.md
+02-Temporal-Decision-Tracking.md
+03-Context-Aware-Chunking.md
+04-Meeting-Graph-Construction.md
+05-Graph-Retrieval.md
+06-LLM-Agentic-Pipeline-Design.md
+BAO_CAO_KIEM_THU_MISSION_2.md
+README.md

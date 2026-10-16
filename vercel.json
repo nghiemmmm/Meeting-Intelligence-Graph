@@ -1,7 +1,12 @@
 {
   "version": 2,
-  "buildCommand": "cd frontend && npm install && npm run build",
+  "buildCommand": "cd frontend && npm install && npm run build && rm -rf node_modules",
   "outputDirectory": "frontend/dist",
+  "functions": {
+    "api/**": {
+      "excludeFiles": "{frontend/**,Resource/**,tests/**,data/*.db,*.md}"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
